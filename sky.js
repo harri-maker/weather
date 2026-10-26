@@ -90,13 +90,13 @@ const Sky = (() => {
     return [0, 1].map((i) => mix(mix(pal.clear[i], pal.overcast[i], s.clouds), pal.storm[i], s.storm));
   }
 
-  // The iOS home-screen app's status bar strip takes its colour from theme-color, so keep it
-  // matching the top of the sky. The root background follows too, so pulling down past the
-  // top shows sky; the body keeps the normal page background for everything below.
-  // Done on every weather change, even before the canvas has a size.
+  // iOS 26 home-screen apps colour the status bar from a fixed element at the top of the screen
+  // (.status-strip) or else the body's background colour, so both follow the top of the sky
+  // via --sky-top. theme-color is for browsers that still use it. Done on every weather change,
+  // even before the canvas has a size.
   function applyPageColors() {
     const hex = "#" + skyColors(state)[0].map((v) => v.toString(16).padStart(2, "0")).join("");
-    document.documentElement.style.backgroundColor = hex;
+    document.documentElement.style.setProperty("--sky-top", hex);
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", hex);
   }
 

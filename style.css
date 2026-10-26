@@ -39,7 +39,9 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* The colour iOS may use for the status bar is the sky's; the visible page stays --bg */
+  background-color: var(--sky-top, var(--bg));
+  background-image: linear-gradient(var(--bg), var(--bg));
   color: var(--text);
   font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -49,6 +51,23 @@ body {
 button { font: inherit; color: inherit; cursor: pointer; }
 
 svg { display: block; }
+
+/* Solid sky-coloured strip behind the status bar, only in the home-screen app. iOS 26 takes the
+   status bar colour from a fixed element touching the top, instead of blurring the page there. */
+.status-strip { display: none; }
+@media (display-mode: standalone) {
+  .status-strip {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: max(1px, env(safe-area-inset-top));
+    background: var(--sky-top, var(--hero-top));
+    z-index: 5;
+    pointer-events: none;
+  }
+}
 
 /* ---------- Hero / current conditions ---------- */
 
