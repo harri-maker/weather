@@ -4,6 +4,8 @@
 // Browsers can't set a User-Agent, so MET identifies this app by its Origin header.
 // Their terms: plain GET requests only, coordinates at most 4 decimals, respect Expires.
 const FORECAST_URL = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
+// Long-range (21-day) daily forecast from MET Norway. Only covers Norway, Sweden, Finland and Denmark.
+const LONG_RANGE_URL = "https://api.met.no/weatherapi/subseasonal/1.0/complete";
 // Place names: OpenStreetMap Nominatim. Only queried on submit (no search-as-you-type).
 const GEOCODE_URL = "https://nominatim.openstreetmap.org";
 
@@ -54,21 +56,23 @@ function setStatus(text, isError = false) {
 
 // ---------- Data fetching ----------
 
-async function getForecast(lat, lon) {
-  const key = `forecast:${lat},${lon}`;
+// Fetches JSON from MET, keeping a copy until its Expires time (and as an offline fallback).
+async function cachedJson(url, key) {
   const cached = store.get(key);
   if (cached && Date.now() < cached.expires) return cached;
 
   let res;
   try {
-    res = await fetch(`${FORECAST_URL}?lat=${lat}&lon=${lon}`);
+    res = await fetch(url);
   } catch (err) {
     if (cached) return { ...cached, offline: true };
     throw new Error("No connection. Check your internet and try again.");
   }
   if (!res.ok) {
     if (cached) return { ...cached, offline: true };
-    throw new Error(`The forecast service answered with an error (${res.status}).`);
+    const err = new Error(`The forecast service answered with an error (${res.status}).`);
+    err.status = res.status;
+    throw err;
   }
   const data = await res.json();
   const expires = Date.parse(res.headers.get("Expires")) || Date.now() + 30 * 60 * 1000;
@@ -76,6 +80,9 @@ async function getForecast(lat, lon) {
   store.set(key, entry);
   return entry;
 }
+
+const getForecast = (lat, lon) => cachedJson(`${FORECAST_URL}?lat=${lat}&lon=${lon}`, `forecast:${lat},${lon}`);
+const getLongRange = (lat, lon) => cachedJson(`${LONG_RANGE_URL}?lat=${lat}&lon=${lon}`, `longrange:${lat},${lon}`);
 
 async function reverseGeocode(lat, lon) {
   const lang = encodeURIComponent(navigator.language || "en");
@@ -266,13 +273,80 @@ function openDay(day) {
     </li>`;
   }).join("");
 
-  $("day-sheet").showModal();
-  document.querySelector(".day-sheet-body").scrollTop = 0;
+  openSheet($("day-sheet"));
+}
+
+// ---------- 21-day forecast ----------
+
+function isoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  return Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+}
+
+// Rough box around Norway, Sweden, Finland and Denmark. MET's "not covered" reply has no CORS
+// header, so the browser can't tell it from a network error; skip places clearly outside instead.
+const inLongRangeArea = (p) => p.lat >= 54.4 && p.lat <= 71.5 && p.lon >= 4 && p.lon <= 31.7;
+
+const tempColor = (t) => (t <= 0 ? "var(--cold)" : t < 15 ? "#f2a33a" : "var(--warm)");
+
+function openLongRange() {
+  if (!place) return;
+  $("long-sub").textContent = place.name || "";
+  $("long-days").innerHTML = `<li class="long-msg">Loading…</li>`;
+  openSheet($("long-sheet"));
+  getLongRange(place.lat, place.lon).then(renderLongRange).catch(() => {
+    $("long-days").innerHTML = `<li class="long-msg">Couldn't load the 21-day forecast. It's only available for places in Norway, Sweden, Finland and Denmark, and needs an internet connection.</li>`;
+  });
+}
+
+function renderLongRange(res) {
+  const days = res.data.properties.timeseries
+    .filter((e) => e.data.next_24_hours)
+    .slice(0, 21)
+    .map((e) => {
+      const [y, m, d] = e.time.slice(0, 10).split("-").map(Number); // MET's days, not shifted by time zone
+      return { date: new Date(y, m - 1, d), ...e.data.next_24_hours.details };
+    });
+
+  const low = (d) => d.air_temperature_min_percentile_10 ?? d.air_temperature_min;
+  const high = (d) => d.air_temperature_max_percentile_90 ?? d.air_temperature_max;
+  const lo = Math.min(...days.map(low));
+  const hi = Math.max(...days.map(high));
+  const pos = (t) => ((t - lo) / (hi - lo || 1)) * 100;
+  const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+
+  let week = null;
+  $("long-days").innerHTML = days.map((d) => {
+    const min = d.air_temperature_min, max = d.air_temperature_max;
+    const wk = isoWeek(d.date);
+    const header = wk !== week ? `<li class="week">Week ${wk}</li>` : "";
+    week = wk;
+    return `${header}<li class="long-row">
+      <span class="date">${esc(weekday.format(d.date))}<small>${esc(shortDateFmt.format(d.date))}</small></span>
+      <span class="lo">${fmtTemp(min)}</span>
+      <span class="range">
+        <span class="band" style="left:${pos(low(d))}%;width:${pos(high(d)) - pos(low(d))}%"></span>
+        <span class="bar" style="left:${pos(min)}%;width:${Math.max(pos(max) - pos(min), 3)}%;background:linear-gradient(90deg, ${tempColor(min)}, ${tempColor(max)})"></span>
+      </span>
+      <span class="hi ${tempClass(max)}">${fmtTemp(max)}</span>
+      <span class="p">${fmtPrecip(d.precipitation_amount) || "–"}<small>${Math.round(d.probability_of_precipitation ?? 0)}%</small></span>
+    </li>`;
+  }).join("");
+
+  const updated = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(res.data.properties.meta.updated_at));
+  $("long-sub").textContent = `${place.name ? `${place.name} · ` : ""}${res.offline ? "Offline, from" : "Updated"} ${updated}`;
+}
+
+// ---------- Bottom sheets (day detail, 21-day forecast) ----------
+
+function openSheet(sheet) {
+  sheet.showModal();
+  sheet.querySelector(".day-sheet-body").scrollTop = 0;
 }
 
 // Slides the sheet down, then closes it. Also used after a swipe, continuing from where the finger let go.
-function closeDay() {
-  const sheet = $("day-sheet");
+function closeSheet(sheet) {
   if (!sheet.open || sheet.classList.contains("closing")) return;
   let done = false;
   const finish = () => {
@@ -290,9 +364,8 @@ function closeDay() {
 }
 
 // Swipe the sheet down by its top (grabber and title) to close it.
-function setupSheetDrag() {
-  const sheet = $("day-sheet");
-  const handle = $("day-drag");
+function setupSheet(sheet) {
+  const handle = sheet.querySelector(".day-sheet-top");
   let start = null;
 
   handle.addEventListener("pointerdown", (e) => {
@@ -311,7 +384,7 @@ function setupSheetDrag() {
     const flick = dy / (performance.now() - start.time) > 0.6;
     start = null;
     if (dy > 120 || (flick && dy > 30)) {
-      closeDay();
+      closeSheet(sheet);
     } else {
       sheet.style.transition = "transform .2s ease";
       sheet.style.transform = "";
@@ -321,10 +394,10 @@ function setupSheetDrag() {
   handle.addEventListener("pointercancel", release);
 
   // Tapping the dimmed page around the sheet closes it; so does Escape.
-  sheet.addEventListener("click", (e) => { if (e.target === sheet) closeDay(); });
+  sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSheet(sheet); });
   sheet.addEventListener("cancel", (e) => {
     e.preventDefault();
-    closeDay();
+    closeSheet(sheet);
   });
 }
 
@@ -340,6 +413,7 @@ function render(forecast) {
   });
   renderHourly(hourlyEntries(series, now));
   renderDaily(dailySummaries(series, now));
+  $("long-btn").hidden = !inLongRangeArea(place);
 
   const updated = new Date(forecast.data.properties.meta.updated_at);
   const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(updated);
@@ -361,6 +435,7 @@ function showWelcome(show) {
     $("now").hidden = true;
     $("hourly-card").hidden = true;
     $("daily-card").hidden = true;
+    $("long-btn").hidden = true;
   }
 }
 
@@ -446,7 +521,8 @@ document.addEventListener("click", (e) => {
   if (action === "locate") useMyLocation();
   else if (action === "search") openSearch();
   else if (action === "close") closeSearch();
-  else if (action === "close-day") closeDay();
+  else if (action === "close-sheet") closeSheet(e.target.closest("dialog"));
+  else if (action === "long") openLongRange();
 
   const dayBtn = e.target.closest("#daily .day");
   if (dayBtn) openDay(shownDays[+dayBtn.dataset.day]);
@@ -471,7 +547,8 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && place) loadForecast();
 });
 
-setupSheetDrag();
+setupSheet($("day-sheet"));
+setupSheet($("long-sheet"));
 showPlaceName();
 if (!place) {
   showWelcome(true);

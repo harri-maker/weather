@@ -247,6 +247,23 @@ main {
 .day .temps .min { color: var(--muted); margin-left: 8px; }
 .day .p { text-align: right; color: var(--rain); font-size: 14px; }
 
+/* ---------- 21-day button ---------- */
+
+.long-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  text-align: left;
+}
+.long-btn[hidden] { display: none; }
+.long-btn strong { display: block; font-weight: 600; }
+.long-btn small { color: var(--muted); font-size: 14px; }
+.long-btn .chev { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.long-btn:active { opacity: .6; }
+
 .warm { color: var(--warm); }
 .cold { color: var(--cold); }
 .hero .warm, .hero .cold { color: inherit; }
@@ -284,6 +301,7 @@ main {
 .day-sheet {
   width: 100%;
   max-width: 640px;
+  min-height: 55dvh; /* short days (only a few 6-hour rows) still reach mid-screen */
   max-height: 88dvh;
   margin: auto auto 0; /* pinned to the bottom of the screen */
   padding: 0;
@@ -364,6 +382,41 @@ main {
 .hour-row .p { color: var(--rain); font-size: 14px; text-align: right; }
 .hour-row .w { color: var(--muted); font-size: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
 .hour-row .w svg { width: 13px; height: 13px; }
+
+/* ---------- 21-day list ---------- */
+
+.long-note { margin: 0 4px 12px; color: var(--muted); font-size: 13px; }
+.long-msg { padding: 18px 0; color: var(--muted); text-align: center; }
+
+.long-list .week {
+  padding: 12px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.long-list .week:first-child { padding-top: 8px; }
+
+.long-row {
+  display: grid;
+  grid-template-columns: 74px 30px 1fr 30px 60px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.long-list .week + .long-row { border-top: 0; }
+.long-row .date small { display: block; color: var(--muted); font-size: 12px; }
+.long-row .lo { color: var(--muted); text-align: right; font-size: 15px; }
+.long-row .hi { font-weight: 600; font-size: 15px; }
+.long-row .range { position: relative; height: 8px; border-radius: 4px; background: var(--line); }
+.long-row .band, .long-row .bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.long-row .band { background: var(--muted); opacity: .25; }
+.long-row .bar { top: 1px; bottom: 1px; }
+.long-row .p { text-align: right; color: var(--rain); font-size: 13px; line-height: 1.2; }
+.long-row .p small { display: block; color: var(--muted); font-size: 12px; }
 
 .search-row { display: flex; gap: 10px; align-items: center; }
 .search-row input {

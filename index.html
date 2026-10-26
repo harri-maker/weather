@@ -49,6 +49,11 @@
       <h2>Next days</h2>
       <ol id="daily" class="daily"></ol>
     </section>
+
+    <button id="long-btn" class="card long-btn" type="button" data-action="long" hidden>
+      <span><strong>21-day forecast</strong><small>Temperature and rain trends further ahead</small></span>
+      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
   </main>
 
   <footer class="credits">
@@ -72,18 +77,35 @@
   </dialog>
 
   <dialog id="day-sheet" class="day-sheet" aria-labelledby="day-title">
-    <div class="day-sheet-top" id="day-drag">
+    <div class="day-sheet-top">
       <span class="grabber" aria-hidden="true"></span>
       <div class="sheet-head">
         <div>
           <h2 id="day-title"></h2>
           <p id="day-sub"></p>
         </div>
-        <button type="button" class="link" data-action="close-day">Done</button>
+        <button type="button" class="link" data-action="close-sheet">Done</button>
       </div>
     </div>
     <div class="day-sheet-body">
       <ol id="day-hours" class="hour-list"></ol>
+    </div>
+  </dialog>
+
+  <dialog id="long-sheet" class="day-sheet" aria-labelledby="long-title">
+    <div class="day-sheet-top">
+      <span class="grabber" aria-hidden="true"></span>
+      <div class="sheet-head">
+        <div>
+          <h2 id="long-title">21-day forecast</h2>
+          <p id="long-sub"></p>
+        </div>
+        <button type="button" class="link" data-action="close-sheet">Done</button>
+      </div>
+    </div>
+    <div class="day-sheet-body">
+      <p class="long-note">Long-range forecasts are uncertain. Each bar shows the expected low and high; the faded band around it is the likely range. The percentage is the chance of rain.</p>
+      <ol id="long-days" class="hour-list long-list"></ol>
     </div>
   </dialog>
 
