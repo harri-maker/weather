@@ -267,7 +267,65 @@ function openDay(day) {
   }).join("");
 
   $("day-sheet").showModal();
-  $("day-sheet").scrollTop = 0;
+  document.querySelector(".day-sheet-body").scrollTop = 0;
+}
+
+// Slides the sheet down, then closes it. Also used after a swipe, continuing from where the finger let go.
+function closeDay() {
+  const sheet = $("day-sheet");
+  if (!sheet.open || sheet.classList.contains("closing")) return;
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    sheet.classList.remove("closing");
+    sheet.style.transform = "";
+    sheet.style.transition = "";
+    sheet.close();
+  };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
+  sheet.classList.add("closing");
+  sheet.addEventListener("animationend", finish, { once: true });
+  setTimeout(finish, 400); // in case the animation event never arrives
+}
+
+// Swipe the sheet down by its top (grabber and title) to close it.
+function setupSheetDrag() {
+  const sheet = $("day-sheet");
+  const handle = $("day-drag");
+  let start = null;
+
+  handle.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button")) return;
+    start = { y: e.clientY, time: performance.now() };
+    try { handle.setPointerCapture(e.pointerId); } catch { /* keep dragging without capture */ }
+    sheet.style.transition = "none";
+  });
+  handle.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    sheet.style.transform = `translateY(${Math.max(0, e.clientY - start.y)}px)`;
+  });
+  const release = (e) => {
+    if (!start) return;
+    const dy = Math.max(0, e.clientY - start.y);
+    const flick = dy / (performance.now() - start.time) > 0.6;
+    start = null;
+    if (dy > 120 || (flick && dy > 30)) {
+      closeDay();
+    } else {
+      sheet.style.transition = "transform .2s ease";
+      sheet.style.transform = "";
+    }
+  };
+  handle.addEventListener("pointerup", release);
+  handle.addEventListener("pointercancel", release);
+
+  // Tapping the dimmed page around the sheet closes it; so does Escape.
+  sheet.addEventListener("click", (e) => { if (e.target === sheet) closeDay(); });
+  sheet.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    closeDay();
+  });
 }
 
 function render(forecast) {
@@ -388,7 +446,7 @@ document.addEventListener("click", (e) => {
   if (action === "locate") useMyLocation();
   else if (action === "search") openSearch();
   else if (action === "close") closeSearch();
-  else if (action === "close-day") $("day-sheet").close();
+  else if (action === "close-day") closeDay();
 
   const dayBtn = e.target.closest("#daily .day");
   if (dayBtn) openDay(shownDays[+dayBtn.dataset.day]);
@@ -413,6 +471,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && place) loadForecast();
 });
 
+setupSheetDrag();
 showPlaceName();
 if (!place) {
   showWelcome(true);

@@ -71,15 +71,20 @@
     <ul id="search-results" class="results"></ul>
   </dialog>
 
-  <dialog id="day-sheet" class="sheet day-sheet">
-    <div class="sheet-head">
-      <div>
-        <h2 id="day-title"></h2>
-        <p id="day-sub"></p>
+  <dialog id="day-sheet" class="day-sheet" aria-labelledby="day-title">
+    <div class="day-sheet-top" id="day-drag">
+      <span class="grabber" aria-hidden="true"></span>
+      <div class="sheet-head">
+        <div>
+          <h2 id="day-title"></h2>
+          <p id="day-sub"></p>
+        </div>
+        <button type="button" class="link" data-action="close-day">Done</button>
       </div>
-      <button type="button" class="link" data-action="close-day">Done</button>
     </div>
-    <ol id="day-hours" class="hour-list"></ol>
+    <div class="day-sheet-body">
+      <ol id="day-hours" class="hour-list"></ol>
+    </div>
   </dialog>
 
   <script src="sky.js"></script>

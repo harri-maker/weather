@@ -279,7 +279,56 @@ main {
 .sheet::backdrop { background: rgba(0,0,0,.35); }
 .sheet { overflow-y: auto; overscroll-behavior: contain; }
 
-/* ---------- Day detail sheet ---------- */
+/* ---------- Day detail: bottom sheet over the page ---------- */
+
+.day-sheet {
+  width: 100%;
+  max-width: 640px;
+  max-height: 88dvh;
+  margin: auto auto 0; /* pinned to the bottom of the screen */
+  padding: 0;
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .25);
+  flex-direction: column;
+  overflow: hidden;
+}
+.day-sheet[open] { display: flex; animation: sheet-up .32s cubic-bezier(.2, .9, .3, 1); }
+.day-sheet.closing { animation: sheet-down .22s ease-in forwards; }
+.day-sheet::backdrop {
+  background: rgba(0, 0, 0, .4);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: fade-in .32s ease;
+}
+.day-sheet.closing::backdrop { animation: fade-out .22s ease-in forwards; }
+
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .day-sheet[open], .day-sheet::backdrop { animation: none; }
+}
+
+.day-sheet-top { padding: 8px 16px 0; touch-action: none; cursor: grab; }
+.grabber {
+  display: block;
+  width: 38px;
+  height: 5px;
+  margin: 0 auto 6px;
+  border-radius: 3px;
+  background: var(--muted);
+  opacity: .5;
+}
+.day-sheet-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px calc(env(safe-area-inset-bottom) + 16px);
+}
 
 .sheet-head {
   display: flex;
