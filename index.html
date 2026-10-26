@@ -8,7 +8,9 @@
   <meta name="theme-color" content="#2f7fe8">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Not black-translucent: since iOS 26.1 that makes iOS blur the top of the page.
+       With the default style the app starts below an opaque status bar tinted by theme-color. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Forecast">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">

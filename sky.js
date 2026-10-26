@@ -83,6 +83,23 @@ const Sky = (() => {
     return { img: c, w: cw, h: ch };
   }
 
+  // [top, bottom] gradient colours for the described weather.
+  function skyColors(s) {
+    const pal = SKIES[s.period];
+    if (s.fog) return pal.fog;
+    return [0, 1].map((i) => mix(mix(pal.clear[i], pal.overcast[i], s.clouds), pal.storm[i], s.storm));
+  }
+
+  // The iOS home-screen app's status bar strip takes its colour from theme-color, so keep it
+  // matching the top of the sky. The root background follows too, so pulling down past the
+  // top shows sky; the body keeps the normal page background for everything below.
+  // Done on every weather change, even before the canvas has a size.
+  function applyPageColors() {
+    const hex = "#" + skyColors(state)[0].map((v) => v.toString(16).padStart(2, "0")).join("");
+    document.documentElement.style.backgroundColor = hex;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", hex);
+  }
+
   // Creates all the moving pieces for the current weather and canvas size.
   function build() {
     if (!state || !w || !h) return;
@@ -132,16 +149,7 @@ const Sky = (() => {
       v: rand(280, 380) + s.wind * 20, amp: rand(2, 6), phase: rand(0, 6.28),
     })) : [];
 
-    const pal = SKIES[s.period];
-    const top = s.fog ? pal.fog[0] : mix(mix(pal.clear[0], pal.overcast[0], s.clouds), pal.storm[0], s.storm);
-    const bottom = s.fog ? pal.fog[1] : mix(mix(pal.clear[1], pal.overcast[1], s.clouds), pal.storm[1], s.storm);
-
-    // iOS home-screen apps tint the status bar area (and pick its text colour) from the page
-    // background, not from what's drawn under it. Give the root the sky's colour so the
-    // tint blends in; the body keeps the normal page background for everything below.
-    document.documentElement.style.backgroundColor = rgba(top);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", rgba(top));
-
+    const [top, bottom] = skyColors(s);
     scene = { top, bottom, stars, clouds, drops, flakes, fogBands, streaks, flash: 0, nextFlash: time + rand(1.5, 4), echo: 0 };
   }
 
@@ -327,6 +335,7 @@ const Sky = (() => {
       : input);
     if (state && JSON.stringify(state) === JSON.stringify(next)) return;
     state = next;
+    applyPageColors();
     build();
     start();
   }
