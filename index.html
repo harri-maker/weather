@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Forecast</title>
+  <meta name="description" content="Weather forecast powered by MET Norway (yr.no) data.">
+  <meta name="theme-color" content="#2f7fe8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Forecast">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <canvas id="sky" class="sky" aria-hidden="true"></canvas>
+    <div class="topbar">
+      <button id="place-btn" class="place-btn" type="button" aria-label="Change location">
+        <svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+        <span id="place-name">Weather</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+      </button>
+      <button id="refresh-btn" class="icon-btn" type="button" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>
+      </button>
+    </div>
+    <div id="now" class="now" hidden></div>
+    <p id="status" class="status"></p>
+  </header>
+
+  <main>
+    <section id="welcome" class="card glass welcome" hidden>
+      <h2>Where are you?</h2>
+      <p>Use your location for the local forecast, or search for a place.</p>
+      <button class="primary" type="button" data-action="locate">Use my location</button>
+      <button class="secondary" type="button" data-action="search">Search for a place</button>
+    </section>
+
+    <section id="hourly-card" class="card glass" hidden>
+      <h2>Next 24 hours</h2>
+      <div id="hourly" class="hourly"></div>
+    </section>
+
+    <section id="daily-card" class="card" hidden>
+      <h2>Next days</h2>
+      <ol id="daily" class="daily"></ol>
+    </section>
+  </main>
+
+  <footer class="credits">
+    Weather data from <a href="https://www.met.no/en" target="_blank" rel="noopener">MET Norway</a>,
+    licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
+    Icons © <a href="https://github.com/metno/weathericons" target="_blank" rel="noopener">Yr</a> (MIT).
+    Place names © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+  </footer>
+
+  <dialog id="search-sheet" class="sheet">
+    <form id="search-form" class="search-row" method="dialog">
+      <input id="search-input" type="search" placeholder="Search for a city or place" autocomplete="off" enterkeyhint="search">
+      <button type="button" class="link" data-action="close">Cancel</button>
+    </form>
+    <button class="locate-row" type="button" data-action="locate">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      Use my location
+    </button>
+    <p id="search-msg" class="search-msg"></p>
+    <ul id="search-results" class="results"></ul>
+  </dialog>
+
+  <script src="sky.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
