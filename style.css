@@ -68,7 +68,7 @@ svg { display: block; }
     pointer-events: none;
   }
   /* iOS still blurs a band just below the status bar; start the place name and refresh below it */
-  body .hero { padding-top: calc(env(safe-area-inset-top) + 52px); }
+  body .hero { padding-top: calc(env(safe-area-inset-top) + 30px); }
 }
 
 /* ---------- Hero / current conditions ---------- */
