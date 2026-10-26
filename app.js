@@ -138,9 +138,10 @@ function dailySummaries(series, now) {
     const key = dayKey(t);
     let day = days.get(key);
     if (!day) {
-      day = { date: t, min: Infinity, max: -Infinity, precip: 0, symbol: null, symbolDist: Infinity };
+      day = { date: t, min: Infinity, max: -Infinity, precip: 0, symbol: null, symbolDist: Infinity, entries: [] };
       days.set(key, day);
     }
+    day.entries.push(e);
 
     const temp = e.data.instant.details.air_temperature;
     day.min = Math.min(day.min, temp);
@@ -216,23 +217,57 @@ function renderHourly(entries) {
   $("hourly-card").hidden = entries.length === 0;
 }
 
-function renderDaily(days) {
-  const today = dayKey(new Date());
-  const tomorrow = dayKey(new Date(Date.now() + 24 * HOUR));
-  const weekday = new Intl.DateTimeFormat(undefined, { weekday: "long" });
-  const short = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+const weekdayFmt = new Intl.DateTimeFormat(undefined, { weekday: "long" });
+const shortDateFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
 
-  $("daily").innerHTML = days.map((d) => {
-    const key = dayKey(d.date);
-    const name = key === today ? "Today" : key === tomorrow ? "Tomorrow" : weekday.format(d.date);
-    return `<li class="day">
-      <span class="name">${esc(name)}<small>${esc(short.format(d.date))}</small></span>
+function dayName(date) {
+  const key = dayKey(date);
+  if (key === dayKey(new Date())) return "Today";
+  if (key === dayKey(new Date(Date.now() + 24 * HOUR))) return "Tomorrow";
+  return weekdayFmt.format(date);
+}
+
+let shownDays = [];
+
+const CHEVRON = `<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>`;
+
+function renderDaily(days) {
+  shownDays = days;
+  $("daily").innerHTML = days.map((d, i) => `<li>
+    <button class="day" type="button" data-day="${i}">
+      <span class="name">${esc(dayName(d.date))}<small>${esc(shortDateFmt.format(d.date))}</small></span>
       <img src="${iconUrl(d.symbol)}" alt="${esc(d.symbol.replace(/_/g, " "))}" loading="lazy">
       <span class="temps"><span class="${tempClass(d.max)}">${fmtTemp(d.max)}</span><span class="min">${fmtTemp(d.min)}</span></span>
       <span class="p">${fmtPrecip(d.precip)}</span>
+      ${CHEVRON}
+    </button>
+  </li>`).join("");
+  $("daily-card").hidden = days.length === 0;
+}
+
+// One day in detail: hourly rows while MET has hourly data, then 6-hour periods ("14–20").
+function openDay(day) {
+  $("day-title").textContent = dayName(day.date);
+  $("day-sub").innerHTML = `${esc(shortDateFmt.format(day.date))} · <span class="${tempClass(day.max)}">${fmtTemp(day.max)}</span> / ${fmtTemp(day.min)}${day.precip >= 0.05 ? ` · <span class="rain">${fmtPrecip(day.precip)}</span>` : ""}`;
+
+  $("day-hours").innerHTML = day.entries.map((e) => {
+    const period = e.data.next_1_hours || e.data.next_6_hours;
+    if (!period) return "";
+    const t = new Date(e.time);
+    const label = e.data.next_1_hours ? pad(t.getHours()) : `${pad(t.getHours())}–${pad(new Date(t.getTime() + 6 * HOUR).getHours())}`;
+    const d = e.data.instant.details;
+    const symbol = period.summary.symbol_code;
+    return `<li class="hour-row">
+      <span class="time">${label}</span>
+      <img src="${iconUrl(symbol)}" alt="${esc(symbol.replace(/_/g, " "))}">
+      <span class="t ${tempClass(d.air_temperature)}">${fmtTemp(d.air_temperature)}</span>
+      <span class="p">${fmtPrecip(period.details?.precipitation_amount ?? 0)}</span>
+      <span class="w">${windArrow(d.wind_from_direction)}${Math.round(d.wind_speed)} m/s</span>
     </li>`;
   }).join("");
-  $("daily-card").hidden = days.length === 0;
+
+  $("day-sheet").showModal();
+  $("day-sheet").scrollTop = 0;
 }
 
 function render(forecast) {
@@ -353,6 +388,10 @@ document.addEventListener("click", (e) => {
   if (action === "locate") useMyLocation();
   else if (action === "search") openSearch();
   else if (action === "close") closeSearch();
+  else if (action === "close-day") $("day-sheet").close();
+
+  const dayBtn = e.target.closest("#daily .day");
+  if (dayBtn) openDay(shownDays[+dayBtn.dataset.day]);
 
   const result = e.target.closest("#search-results button");
   if (result) {

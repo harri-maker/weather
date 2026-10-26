@@ -53,7 +53,6 @@ svg { display: block; }
 /* ---------- Hero / current conditions ---------- */
 
 .hero {
-  background: linear-gradient(180deg, var(--hero-top), var(--hero-bottom));
   color: #fff;
   /* The extra bottom padding is sky that the first card floats over (see main's negative margin) */
   padding: calc(env(safe-area-inset-top) + 8px) 16px var(--overlap);
@@ -63,9 +62,6 @@ svg { display: block; }
   overflow: hidden;
   isolation: isolate;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .25);
-  /* Fade the bottom of the sky into the page instead of ending in a hard line */
-  -webkit-mask-image: linear-gradient(#000 calc(100% - 110px), transparent);
-  mask-image: linear-gradient(#000 calc(100% - 110px), transparent);
 }
 
 .hero > * { max-width: 608px; margin-left: auto; margin-right: auto; }
@@ -79,6 +75,11 @@ svg { display: block; }
   max-width: none;
   margin: 0;
   z-index: -1;
+  background: linear-gradient(180deg, var(--hero-top), var(--hero-bottom)); /* until the first frame is drawn */
+  /* Fade the bottom of the sky into the page instead of ending in a hard line.
+     Only the canvas is masked: masking the whole hero makes iOS Safari render its text blurry. */
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 110px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 110px), transparent);
 }
 
 .topbar {
@@ -226,13 +227,19 @@ main {
 .daily { list-style: none; margin: 0; padding: 0; }
 .day {
   display: grid;
-  grid-template-columns: 1fr 44px 92px 56px;
+  grid-template-columns: 1fr 44px 84px 56px 14px;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 8px 0;
+  border: 0;
   border-top: 1px solid var(--line);
+  background: none;
+  text-align: left;
 }
-.day:first-child { border-top: 0; }
+.daily li:first-child .day { border-top: 0; }
+.day:active { opacity: .6; }
+.day .chev { width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .day .name { font-weight: 500; }
 .day .name small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; }
 .day img { width: 40px; height: 40px; }
@@ -270,6 +277,44 @@ main {
   color: var(--text);
 }
 .sheet::backdrop { background: rgba(0,0,0,.35); }
+.sheet { overflow-y: auto; overscroll-behavior: contain; }
+
+/* ---------- Day detail sheet ---------- */
+
+.sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sheet-head h2 { margin: 4px 0 2px; font-size: 26px; }
+.sheet-head p { margin: 0; color: var(--muted); }
+.sheet-head .rain { color: var(--rain); }
+
+.hour-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+  background: var(--card);
+  border-radius: 18px;
+}
+.hour-row {
+  display: grid;
+  grid-template-columns: 64px 40px 1fr 64px 72px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.hour-row:first-child { border-top: 0; }
+.hour-row .time { color: var(--muted); }
+.hour-row img { width: 36px; height: 36px; }
+.hour-row .t { font-weight: 600; }
+.hour-row .p { color: var(--rain); font-size: 14px; text-align: right; }
+.hour-row .w { color: var(--muted); font-size: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+.hour-row .w svg { width: 13px; height: 13px; }
 
 .search-row { display: flex; gap: 10px; align-items: center; }
 .search-row input {
