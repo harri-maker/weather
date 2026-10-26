@@ -136,6 +136,12 @@ const Sky = (() => {
     const top = s.fog ? pal.fog[0] : mix(mix(pal.clear[0], pal.overcast[0], s.clouds), pal.storm[0], s.storm);
     const bottom = s.fog ? pal.fog[1] : mix(mix(pal.clear[1], pal.overcast[1], s.clouds), pal.storm[1], s.storm);
 
+    // iOS home-screen apps tint the status bar area (and pick its text colour) from the page
+    // background, not from what's drawn under it. Give the root the sky's colour so the
+    // tint blends in; the body keeps the normal page background for everything below.
+    document.documentElement.style.backgroundColor = rgba(top);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", rgba(top));
+
     scene = { top, bottom, stars, clouds, drops, flakes, fogBands, streaks, flash: 0, nextFlash: time + rand(1.5, 4), echo: 0 };
   }
 
